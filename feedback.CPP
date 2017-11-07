@@ -2,7 +2,7 @@
 //take user input for feedback form and save it as a
 //.csv file that can be edited in MS Excel.
 //
-// v:1.0 July 27, 2017
+// v:1.6 October 8, 2017
 
 //include headers
 #include<conio.h>
@@ -10,9 +10,14 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
+#include<limits.h>
+#include<time.h>
 
 //encryption layer libraby
 #include "encrypto.h"
+
+//utilities Library
+#include "utils.h"
 
 //declarations for input parameters from the terminal(file names)
 char userData_fileName[32];
@@ -24,42 +29,6 @@ char feedbackData_fileName[32];
 //NOTE: this program assumes that the field for roll number is a primary key to the table
 //NOTE: record status is a binary field that records if that user has submitted their feedback (YES/NO)
 
-//struct for user database
-struct node {
-	//for user -password matching
-	unsigned long int rNum;
-	unsigned long long int passwd;
-	int record; //save record state for each unique roll number to avoid redundancies
-	node * next;
-} *head, *ptr;
-
-//class question for each in the feedback
-class Question {
-	//data members are public
-	public :
-	char answerToQuestion[512];
-	int rating;
-};
-
-//class subject for each in the feedback
-class Subject {
-	//data members are public
-	public :
-	char subjectName[32];
-	char teacherName[32];
-	Question questions[7];
-};
-
-//class feedback for storing the data
-class FeedbackForm {
-	//data members are public
-	public :
-	unsigned long int rollNumber;
-	char studentName[32];
-	char password[32];
-	Subject subjects[5];
-};
-
 //global variable declarations
 FeedbackForm feed;
 
@@ -67,17 +36,17 @@ FeedbackForm feed;
 void readUserData() {
 	head = NULL;
 	FILE * file = fopen(userData_fileName, "r");
-	if(file == NULL) {
+	if(file == NULL) { //file doesn't exist
 		return;
 	}
 	int counter = 0;
 	char * token;
 	char * end;
-	char buffer[256];
+	char buffer[512];
 	unsigned long int r;
 	int rec;
 	unsigned long long int p;
-	while(fgets(buffer, 256, (FILE*) file)) {
+	while(fgets(buffer, 512, (FILE*) file)) {
 
 		token = strtok(buffer, ",");
 		if(token != NULL) {
@@ -190,7 +159,55 @@ void updateFeedbackStatus(unsigned long int rNum) {
 	}
 }
 
-//TODO: add new user list functions here
+//function to sort the user list
+//the parameter order decides whether the list is sorted in ascending or descending order
+//ascending if order is 1 and otherwise if order is -1
+void sortUserList(int order) {
+	int swapped = 0;
+	unsigned long int rNum;
+	unsigned long long int passwd;
+	int record;
+
+	node * temp = NULL;
+	do {
+		swapped = 0;
+		ptr = head;
+		while(ptr->next != temp) {
+			if(ptr->rNum > ptr->next->rNum && order == 1) { //ascending order
+				rNum = ptr->rNum;
+				passwd = ptr->passwd;
+				record = ptr->record;
+
+				ptr->rNum = ptr->next->rNum;
+				ptr->passwd = ptr->next->passwd;
+				ptr->record = ptr->next->record;
+
+				ptr->next->rNum = rNum;
+				ptr->next->passwd = passwd;
+				ptr->next->record = record;
+
+				swapped = 1;
+			}
+			else if(ptr->rNum < ptr->next->rNum && order == -1) { //descending order
+				rNum = ptr->rNum;
+				passwd = ptr->passwd;
+				record = ptr->record;
+
+				ptr->rNum = ptr->next->rNum;
+				ptr->passwd = ptr->next->passwd;
+				ptr->record = ptr->next->record;
+
+				ptr->next->rNum = rNum;
+				ptr->next->passwd = passwd;
+				ptr->next->record = record;
+
+				swapped = 1;
+			}
+			ptr = ptr->next;
+		}
+		temp = ptr;
+	} while(swapped);
+}
 
 //function to clear the user list for garbage collection
 void clearUserList() {
@@ -222,6 +239,14 @@ int inputData() {
 		else {
 			printf(" Enter your Roll Number : ");
 			cin >> feed.rollNumber;
+			//input sanitization
+			while(cin.fail()) {
+				cin.clear(); //clear input buffer to restore cin to a usable state
+				cin.ignore(INT_MAX, '\n'); //ignore last input
+				printf(" ERROR : You can only enter numbers.");
+				printf("\n Enter your Roll Number : ");
+				cin >> feed.rollNumber;
+			}
 			if(checkList(feed.rollNumber) == 1) { //user has given feedback
 				printf(" ERROR : This user has already given their feedback!");
 			}
@@ -244,18 +269,63 @@ int inputData() {
 				}
 				else if(checkPass(feed.rollNumber, temp) == 1) { //user-password matches
 					updateFeedbackStatus(feed.rollNumber);
-					/*for(int i = 0;i < 5;i++) {
-						printf("\n Enter #%d Subject's Name : ", i+1);
-						gets(feed.subjects[i].subjectName);
-						printf(" Enter #%d Teacher's Name : ", i+1);
-						gets(feed.subjects[i].teacherName);
-						for(int j = 0;j < 7;j++) {
-							printf(" Answer to Q. #%d : ", j+1);
-							gets(feed.subjects[i].questions[j].answerToQuestion);
-							printf(" Q. #%d's rating : ", j+1);
-							cin >> feed.subjects[i].questions[j].rating;
+					for(int i = 0;i < 10;i++) {
+						//printf("\n Enter Subject #%d's Name : ", i+1);
+						if(i < 5) {
+							printf("\n Enter Theory Subject  #%d's Name : ", i+1);
 						}
-					}*/
+						else if(i > 4) {
+							printf("\n Enter Practical Subject #%d's Name : ", i-4);
+						}
+						gets(feed.subjects[i].subjectName);
+						while(strcmp(feed.subjects[i].subjectName, "") == 0) {
+							printf(" ERROR : You did not enter a valid subject's name.");
+							//printf("\n Enter Subject #%d's Name : ", i+1);
+							if(i < 5) {
+								printf("\n Enter Teory Subject  #%d's Name : ", i+1);
+							}
+							else if(i > 4) {
+								printf("\n Enter Practical Subject #%d's Name : ", i-4);
+							}
+							gets(feed.subjects[i].subjectName);
+						}
+						int k = 0;
+						do {
+							printf(" Enter Teacher #%d's Name : ", k+1);
+							gets(feed.subjects[i].teachers[k].teacherName);
+							while(strcmp(feed.subjects[i].teachers[k].teacherName, "") == 0 && k == 0) {
+								printf(" ERROR : You did not enter a valid teacher's name.");
+								printf("\n Enter Teacher #%d's Name : ", k+1);
+								gets(feed.subjects[i].teachers[k].teacherName);
+							}
+							if(strcmp(feed.subjects[i].teachers[k].teacherName, "") == 0 && k > 0) {
+								break;
+							}
+							for(int j = 0;j < 10;j++) {
+								do {
+									//printf(" Q. #%d's rating : ", j+1);
+									printf("\n Q. #%d - %s : ", j+1, questions[j]);
+									cin >> feed.subjects[i].teachers[k].questions[j].rating;
+									//input sanitization
+									while(cin.fail()) {
+										cin.clear(); //clear input buffer to restore cin to a usable state
+										cin.ignore(INT_MAX, '\n'); //ignore last input
+										printf(" ERROR : You can only enter numbers.");
+										//printf("\n Q. #%d's rating : ", j+1);
+										printf("\n Q. #%d - %s : ", j+1, questions[j]);
+										cin >> feed.subjects[i].teachers[k].questions[j].rating;
+									}
+									//limit the user rating to between 1 and 5
+									if(feed.subjects[i].teachers[k].questions[j].rating < 1 || feed.subjects[i].teachers[k].questions[j].rating > 5) {
+										printf(" ERROR : The rating must be between 1 and 5.\n");
+									}
+								} while(feed.subjects[i].teachers[k].questions[j].rating < 1 || feed.subjects[i].teachers[k].questions[j].rating > 5);
+							}
+							k += 1;
+						} while(strcmp(feed.subjects[i].teachers[k-1].teacherName, "") != 0 || k == 1);
+					}
+					printf("\n Additional Comments (if any) : ");
+					gets(feed.additionalComments);
 					printf("\n Feedback recorded.");
 					return 0;
 				}
@@ -269,10 +339,30 @@ int inputData() {
 
 //function to save current data
 void saveData() {
+	time_t t;
+	time(&t);
+
 	FILE * file = fopen(feedbackData_fileName, "r");
 	if(file == NULL) { //file does not exist
 		file = fopen(feedbackData_fileName, "w"); //open in write mode
-		fprintf(file, "Roll Number,Name,Password (FNV hashed)\n");
+		fprintf(file, "Roll Number,Name,Time,");
+		for(int i = 0;i < 10;i++) {
+			//fprintf(file, "Subject #%d's Name,", i+1);
+			if(i < 5) {
+				fprintf(file, "Theory Subject #%d's Name,", i+1);
+			}
+			else if(i > 4) {
+				fprintf(file, "Practical Subject #%d's Name,", i-4);
+			}
+			for(int k = 0;k < 3;k++) {
+				fprintf(file, "Teacher #%d's Name,", k+1);
+				for(int j = 0;j < 10;j++) {
+					fprintf(file, "Q. #%d,", j+1);
+				}
+			}
+		}
+		fprintf(file, "Additional Comments,");
+		fprintf(file, "\n");
 	}
 	else { //file exists
 		file = fopen(feedbackData_fileName, "a"); //open in append mode
@@ -280,15 +370,24 @@ void saveData() {
 
 	fprintf(file, "%lu,", feed.rollNumber);
 	fprintf(file, "%s,", feed.studentName);
-	fprintf(file, "%llu,", FNVhash(feed.password));
-	/*for(int i = 0;i < 5;i++) {
+	//fprintf(file, "%llu,", FNVhash(feed.password));
+	fprintf(file, "%.*s,", 24, ctime(&t)); //timestamping
+	for(int i = 0;i < 10;i++) {
 		fprintf(file, "%s,", feed.subjects[i].subjectName);
-		fprintf(file, "%s,", feed.subjects[i].teacherName);
-		for(int j = 0;j < 7;j++) {
-			fprintf(file, "%s,", feed.subjects[i].questions[j].answerToQuestion);
-			fprintf(file, "%d,", feed.subjects[i].questions[j].rating);
+		for(int k = 0;k < 3;k++) {
+			fprintf(file, "%s,", feed.subjects[i].teachers[k].teacherName);
+			for(int j = 0;j < 7;j++) {
+				//if(strcmp(feed.subjects[i].teachers[k].teacherName, "") == 0) {
+				if(feed.subjects[i].teachers[k].questions[j].rating == 0) {
+					fprintf(file, ",");
+				}
+				else {
+					fprintf(file, "%d,", feed.subjects[i].teachers[k].questions[j].rating);
+				}
+			}
 		}
-	}*/
+	}
+	fprintf(file, "%s,", feed.additionalComments);
 	fprintf(file, "\n");
 
 	fclose(file);
@@ -313,6 +412,7 @@ void main(int argc, char ** argv) {
 	}
 	clrscr();
 	readUserData();
+	//sortUserList(1); //sort the list in ascending order
 	char choice;
 	do {
 		clrscr();
@@ -324,6 +424,7 @@ void main(int argc, char ** argv) {
 		}
 		else if(success == -1) {
 			break;
+			//continue;
 		}
 	} while(choice == 'y' || choice == 'Y');
 	saveUserData();

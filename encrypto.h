@@ -30,10 +30,9 @@ void getPassword(char * pass) {
       break;
     }
     ch = getch();
-    //sanitize the input to allow only A-Z, a-z, 0-9, '~', '@', '#', '$', '%', '^', '&', ',', '_', '-' and '.'
-    //if((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '~' || ch == '!' || ch == '@' || ch == '#' || ch == '$' || ch == '%' || ch == '^' || ch == '&' || ch == ',' ||ch == '_' || ch == '-' || ch == '.') {
+    //sanitize the input to allow only A-Z, a-z, 0-9 and special characters
     if(ch >= ' ' && ch <= '~') {
-      printf("*");
+      printf("*"); //comment this section if you don't want to mask the password
       pass[i] = char(ch);
     }
     //backspace functionality
@@ -55,6 +54,7 @@ void getPassword(char * pass) {
       break;
     }
     else if(ch == '\n' || ch == '\r') {
+      printf("\n");
       pass[i] = '\0';
       break;
     }

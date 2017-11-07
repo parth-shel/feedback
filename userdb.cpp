@@ -29,7 +29,7 @@ void main() {
       FILE * file = fopen("UserData.csv", "r");
     	if(file == NULL) {
     		file = fopen("UserData.csv", "w");
-    		fprintf(file, "Roll Number,Password (FNV hashed),Feedback Recorded\n");
+    		fprintf(file, "Roll Number,Password,Feedback Recorded\n");
     	}
     	else {
     		file = fopen("UserData.csv", "a");
