@@ -1,14 +1,16 @@
 // user database building script
 
-#include<conio.h>
-#include<iostream.h>
+#include"conio.h"
+#include<iostream>
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>
 
 #include"encrypto.h"
 
-void main() {
+using namespace std;
+
+int main() {
   clrscr();
   printf("\t\t\t   User Database Builder\n");
   printf("\n new users will be added to the database (UserData.csv)\n until zero (0) is entered into the roll number field.\n");
@@ -41,4 +43,5 @@ void main() {
       printf("\n DONE!");
     }
   } while(password != NULL && rollnumber > 0);
+  return 0;
 }
