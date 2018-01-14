@@ -1,4 +1,4 @@
-goal: feedMake userDBMake git
+goal: feedMake userDBMake
 
 feedMake:
 	g++ -g -o feedback feedback.cpp
