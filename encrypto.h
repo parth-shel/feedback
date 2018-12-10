@@ -23,6 +23,11 @@ unsigned long long int FNVhash(char * str) {
 void getPassword(char * pass) {
   int ch;
   int flag = 0;
+  
+  // discard previous chars in input buffer
+  char c;
+  while((c = getch()) != '\n' && c != EOF);
+
   for(int i = 0;i < 31;i++) {
     if(i == 30) {
       pass[31] = '\0';

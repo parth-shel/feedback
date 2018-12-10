@@ -49,6 +49,10 @@ void readUserData() {
 	int rec;
 	unsigned long long int p;
 	while(fgets(buffer, 512, (FILE*) file)) {
+                if(counter == 0) {
+                    counter += 1;
+                    continue;
+                }
 
 		token = strtok(buffer, ",");
 		if(token != NULL) {
@@ -87,8 +91,8 @@ void readUserData() {
 	}
 
 	fclose(file);
-	free(token);
-	free(end);
+	// free(token);
+	// free(end);
 	return;
 }
 

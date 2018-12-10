@@ -12,3 +12,4 @@ git:
 
 clean:
 	rm -rf feedback
+	rm -rf userDB
